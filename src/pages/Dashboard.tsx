@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { vehicleService } from '../api/vehicleService';
 import { userService } from '../api/userService';
 import { rideService } from '../api/rideService';
-import { User, Ride, RideStatus } from '../types';
+import { rideRequestService } from '../api/rideRequestService';
+import { User, Ride, RideStatus, RideRequest, RideRequestStatus } from '../types';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -12,8 +13,11 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [rides, setRides] = useState<Ride[]>([]);
+  const [myRequests, setMyRequests] = useState<RideRequest[]>([]);
+  const [selectedRideRequests, setSelectedRideRequests] = useState<RideRequest[]>([]);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [showRideForm, setShowRideForm] = useState(false);
+  const [selectedRideId, setSelectedRideId] = useState<number | null>(null);
   const [vehicleData, setVehicleData] = useState({ plate: '', brand: '', model: '' });
   const [rideData, setRideData] = useState({
     originCity: '',
@@ -33,6 +37,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchUserData();
     loadUserRides();
+    loadMyRequests();
   }, []);
 
   const fetchUserData = async () => {
@@ -52,6 +57,51 @@ const Dashboard: React.FC = () => {
       CANCELED: 'İptal Edildi',
     };
     return labels[status];
+  };
+
+  const getRequestStatusLabel = (status: RideRequestStatus): string => {
+    const labels: Record<RideRequestStatus, string> = {
+      PENDING: 'Beklemede',
+      ACCEPTED: 'Kabul Edildi',
+      REJECTED: 'Reddedildi',
+    };
+    return labels[status];
+  };
+
+  const loadMyRequests = async () => {
+    try {
+      const data = await rideRequestService.getMyRideRequests();
+      setMyRequests(data);
+    } catch (err) {
+      console.error('Talepler yüklenemedi:', err);
+    }
+  };
+
+  const loadRideRequests = async (rideId: number) => {
+    try {
+      const data = await rideRequestService.getRideRequestsForRide(rideId);
+      setSelectedRideRequests(data);
+      setSelectedRideId(rideId);
+    } catch (err) {
+      console.error('Yolculuk talepleri yüklenemedi:', err);
+    }
+  };
+
+  const handleRequestStatusUpdate = async (requestId: number, newStatus: RideRequestStatus) => {
+    setRideError('');
+    setRideSuccess('');
+
+    try {
+      await rideRequestService.updateRideRequestStatus(requestId, { status: newStatus });
+      setRideSuccess(`Talep durumu "${getRequestStatusLabel(newStatus)}" olarak güncellendi!`);
+      if (selectedRideId) {
+        await loadRideRequests(selectedRideId);
+      }
+      setTimeout(() => setRideSuccess(''), 3000);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Talep durumu güncellenirken bir hata oluştu.';
+      setRideError(errorMessage);
+    }
   };
 
   const loadUserRides = async () => {
@@ -473,10 +523,94 @@ const Dashboard: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  <button
+                    onClick={() => loadRideRequests(ride.id)}
+                    className="btn-secondary"
+                    style={{ marginTop: '10px' }}
+                  >
+                    📋 Talepleri Görüntüle
+                  </button>
+
+                  {selectedRideId === ride.id && selectedRideRequests.length > 0 && (
+                    <div className="ride-requests-section">
+                      <h4 style={{ marginTop: '15px', marginBottom: '10px' }}>Gelen Talepler</h4>
+                      {selectedRideRequests.map((request) => (
+                        <div key={request.id} className="request-card">
+                          <div className="request-info">
+                            <p><strong>{request.guest?.firstName} {request.guest?.lastName}</strong></p>
+                            <p style={{ fontSize: '0.9em', color: '#666' }}>
+                              📧 {request.guest?.email} | 📞 {request.guest?.phone}
+                            </p>
+                            <span className={`request-status-badge ${request.status.toLowerCase()}`}>
+                              {getRequestStatusLabel(request.status)}
+                            </span>
+                          </div>
+                          <div className="request-actions">
+                            <button
+                              onClick={() => handleRequestStatusUpdate(request.id, 'ACCEPTED')}
+                              className="btn-accept"
+                              disabled={request.status === 'ACCEPTED'}
+                            >
+                              ✓ Kabul Et
+                            </button>
+                            <button
+                              onClick={() => handleRequestStatusUpdate(request.id, 'REJECTED')}
+                              className="btn-reject"
+                              disabled={request.status === 'REJECTED'}
+                            >
+                              ✗ Reddet
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedRideId === ride.id && selectedRideRequests.length === 0 && (
+                    <div className="info-message" style={{ marginTop: '10px' }}>
+                      Bu yolculuğa henüz talep gelmemiş.
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
+        </div>
+
+        <div className="my-requests-section">
+          <h2>Gönderdiğim Talepler</h2>
+          {myRequests.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📝</div>
+              <p>Henüz hiçbir yolculuğa talepte bulunmadınız.</p>
+              <p className="empty-subtitle">Ana sayfadan aktif yolculuklara göz atın!</p>
+            </div>
+          ) : (
+            <div className="requests-list">
+              {myRequests.map((request) => (
+                <div key={request.id} className="request-ride-card">
+                  <div className="ride-route-info">
+                    <div className="route-cities">
+                      <span className="city">{request.ride.originCity} ({request.ride.originDistrict})</span>
+                      <span className="arrow">→</span>
+                      <span className="city">{request.ride.destinationCity} ({request.ride.destinationDistrict})</span>
+                    </div>
+                    <div className="ride-meta">
+                      <span>🕒 {formatDateTime(request.ride.departTime)}</span>
+                      <span className="price">₺{request.ride.price.toFixed(2)}</span>
+                    </div>
+                    <p style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
+                      Sürücü: {request.ride.driver.firstName} {request.ride.driver.lastName}
+                    </p>
+                  </div>
+                  <div className={`request-status-badge ${request.status.toLowerCase()}`}>
+                    {getRequestStatusLabel(request.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

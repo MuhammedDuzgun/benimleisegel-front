@@ -70,3 +70,20 @@ export interface UpdateRideStatusRequest {
   status: RideStatus;
 }
 
+export type RideRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+export interface RideRequest {
+  id: number;
+  ride: Ride;
+  guest?: User;
+  status: RideRequestStatus;
+}
+
+export interface CreateRideRequestRequest {
+  id: string;
+}
+
+export interface UpdateRideRequestStatusRequest {
+  status: RideRequestStatus;
+}
+

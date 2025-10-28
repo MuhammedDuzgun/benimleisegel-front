@@ -16,12 +16,23 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.auth-logo {
+  text-decoration: none;
+  display: block;
+  transition: transform 0.2s;
+}
+
+.auth-logo:hover {
+  transform: scale(1.05);
+}
+
 .auth-card h1 {
   font-size: 28px;
   color: #667eea;
   text-align: center;
   margin-bottom: 8px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .auth-card h2 {

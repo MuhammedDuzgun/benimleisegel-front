@@ -36,7 +36,9 @@ const Login: React.FC = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Benimle İşe Gel</h1>
+        <Link to="/" className="auth-logo">
+          <h1>Benimle İşe Gel</h1>
+        </Link>
         <h2>Giriş Yap</h2>
         
         {error && <div className="error-message">{error}</div>}

@@ -401,6 +401,146 @@
   color: #999;
 }
 
+.ride-requests-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e0e7ff;
+}
+
+.ride-requests-section h4 {
+  color: #667eea;
+  margin-bottom: 15px;
+}
+
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.request-info {
+  flex: 1;
+}
+
+.request-info p {
+  margin: 5px 0;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-accept,
+.btn-reject {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-accept {
+  background: #28a745;
+  color: white;
+}
+
+.btn-accept:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.btn-reject {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.btn-accept:disabled,
+.btn-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.request-status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.request-status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.request-status-badge.accepted {
+  background: #d4edda;
+  color: #155724;
+}
+
+.request-status-badge.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.my-requests-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  grid-column: 1 / -1;
+}
+
+.my-requests-section h2 {
+  font-size: 22px;
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: 600;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.request-ride-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s;
+}
+
+.request-ride-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
 @media (max-width: 768px) {
   .dashboard-content {
     grid-template-columns: 1fr;
@@ -434,6 +574,25 @@
 
   .status-select {
     width: 100%;
+  }
+
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .request-actions {
+    width: 100%;
+  }
+
+  .btn-accept,
+  .btn-reject {
+    flex: 1;
+  }
+
+  .request-ride-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

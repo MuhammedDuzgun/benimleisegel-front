@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { rideService } from '../api/rideService';
+import { rideRequestService } from '../api/rideRequestService';
 import { useAuth } from '../context/AuthContext';
 import { Ride } from '../types';
 import './Home.css';
@@ -9,6 +10,9 @@ const Home: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [requestingRideId, setRequestingRideId] = useState<number | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +44,29 @@ const Home: React.FC = () => {
     });
   };
 
+  const handleRideRequest = async (rideId: number) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    setRequestingRideId(rideId);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      await rideRequestService.createRideRequest({ id: rideId.toString() });
+      setSuccessMessage('Talebiniz başarıyla gönderildi!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Talep gönderilirken bir hata oluştu.';
+      setErrorMessage(message);
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setRequestingRideId(null);
+    }
+  };
+
   return (
     <div className="home-container">
       <nav className="home-nav">
@@ -69,6 +96,8 @@ const Home: React.FC = () => {
 
       <div className="rides-section">
         <h3>Aktif Yolculuklar</h3>
+        {successMessage && <div className="success-message">{successMessage}</div>}
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
         {loading ? (
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -124,6 +153,16 @@ const Home: React.FC = () => {
                       {ride.driver.vehicle?.brand} {ride.driver.vehicle?.model}
                     </span>
                   </div>
+
+                  {isAuthenticated && (
+                    <button
+                      onClick={() => handleRideRequest(ride.id)}
+                      className="btn-request"
+                      disabled={requestingRideId === ride.id}
+                    >
+                      {requestingRideId === ride.id ? 'Gönderiliyor...' : 'Talepte Bulun'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

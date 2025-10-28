@@ -9,6 +9,7 @@ interface AuthContextType {
   signup: (data: SignupRequest) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeAuth = () => {
@@ -42,6 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -90,9 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
   };
 
-  // Loading sırasında boş ekran gösterme, context'i yine de sağla
   return (
-    <AuthContext.Provider value={{ user, token, login, signup, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, token, login, signup, logout, isAuthenticated: !!token, loading }}>
       {children}
     </AuthContext.Provider>
   );
