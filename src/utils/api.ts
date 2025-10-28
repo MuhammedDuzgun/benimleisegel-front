@@ -10,12 +10,34 @@ export const api = axios.create({
 });
 
 // Token'ı localStorage'dan alıp her istekte ekle
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    // Token zaten "Bearer " ile başlıyorsa direkt kullan, yoksa ekle
-    config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Token zaten "Bearer " ile başlıyorsa direkt kullan, yoksa ekle
+      config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response interceptor - 401 hatalarında oturumu temizle
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token geçersizse localStorage'ı temizle
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Login sayfasına yönlendir
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 

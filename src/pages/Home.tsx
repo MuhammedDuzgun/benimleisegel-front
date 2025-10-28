@@ -1,15 +1,60 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { rideService } from '../api/rideService';
+import { useAuth } from '../context/AuthContext';
+import { Ride } from '../types';
 import './Home.css';
 
 const Home: React.FC = () => {
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadAvailableRides();
+  }, []);
+
+  const loadAvailableRides = async () => {
+    try {
+      const data = await rideService.getAvailableRides();
+      setRides(data);
+      setError(false);
+    } catch (err) {
+      console.error('Yolculuklar yüklenemedi:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return date.toLocaleString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className="home-container">
       <nav className="home-nav">
-        <h1>Benimle İşe Gel</h1>
+        <Link to="/" className="home-logo">
+          <h1>Benimle İşe Gel</h1>
+        </Link>
         <div className="nav-buttons">
-          <Link to="/login" className="btn-primary">Giriş Yap</Link>
-          <Link to="/signup" className="btn-secondary">Kayıt Ol</Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="btn-primary">Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/login" className="btn-primary">Giriş Yap</Link>
+              <Link to="/signup" className="btn-secondary">Kayıt Ol</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -20,6 +65,70 @@ const Home: React.FC = () => {
             Aynı yöne giden çalışanları buluşturuyoruz. Hem çevreye katkıda bulunun, hem de yol masraflarınızı paylaşın!
           </p>
         </div>
+      </div>
+
+      <div className="rides-section">
+        <h3>Aktif Yolculuklar</h3>
+        {loading ? (
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Yolculuklar yükleniyor...</p>
+          </div>
+        ) : error ? (
+          <div className="error-state">
+            <div className="error-icon">⚠️</div>
+            <p>Yolculuklar yüklenirken bir hata oluştu.</p>
+            <button onClick={loadAvailableRides} className="retry-btn">Tekrar Dene</button>
+          </div>
+        ) : rides.length === 0 ? (
+          <div className="empty-rides-state">
+            <div className="empty-icon">🚗</div>
+            <p>Henüz aktif yolculuk bulunmuyor.</p>
+            <p className="empty-subtitle">İlk yolculuğu siz oluşturun!</p>
+          </div>
+        ) : (
+          <div className="rides-grid">
+            {rides.map((ride) => (
+              <div key={ride.id} className="ride-card">
+                <div className="ride-header">
+                  <div className="ride-route">
+                    <div className="route-point">
+                      <span className="route-icon">📍</span>
+                      <strong className="city-name">{ride.originCity}</strong>
+                      <p className="district-name">{ride.originDistrict}</p>
+                    </div>
+                    <div className="route-arrow">→</div>
+                    <div className="route-point">
+                      <span className="route-icon">🎯</span>
+                      <strong className="city-name">{ride.destinationCity}</strong>
+                      <p className="district-name">{ride.destinationDistrict}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="ride-body">
+                  <div className="ride-date-section">
+                    <div className="ride-time">
+                      🕒 {formatDateTime(ride.departTime)}
+                    </div>
+                  </div>
+                  
+                  <div className="ride-price-section">
+                    <div className="price-label">Yolculuk Ücreti</div>
+                    <span className="ride-price-badge">₺{ride.price.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="ride-footer">
+                    <span className="driver-name">{ride.driver.firstName} {ride.driver.lastName}</span>
+                    <span className="vehicle-info-small">
+                      {ride.driver.vehicle?.brand} {ride.driver.vehicle?.model}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="features-section">

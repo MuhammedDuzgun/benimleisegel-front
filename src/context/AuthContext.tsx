@@ -18,23 +18,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser) {
-          setUser(parsedUser);
+    const initializeAuth = () => {
+      try {
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        
+        if (storedToken && storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser && parsedUser.id && parsedUser.email) {
+            // Geçerli kullanıcı verisi varsa state'e ata
+            setToken(storedToken);
+            setUser(parsedUser);
+          } else {
+            // Geçersiz veri varsa temizle
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
         }
+      } catch (error) {
+        // Hatalı JSON varsa localStorage'ı temizle
+        console.error('Auth initialization error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
       }
-    } catch (error) {
-      // Hatalı JSON varsa localStorage'ı temizle
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setToken(null);
-      setUser(null);
-    }
+    };
+
+    // İlk yüklemede initialize et
+    initializeAuth();
+
+    // Storage değişikliklerini dinle (farklı sekmeler için)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'user' || e.key === null) {
+        initializeAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const saveAuthData = (token: string, user: User) => {
@@ -65,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
   };
 
+  // Loading sırasında boş ekran gösterme, context'i yine de sağla
   return (
     <AuthContext.Provider value={{ user, token, login, signup, logout, isAuthenticated: !!token }}>
       {children}

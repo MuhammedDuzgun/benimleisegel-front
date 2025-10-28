@@ -43,3 +43,30 @@ export interface VehicleRequest {
   model: string;
 }
 
+export type RideStatus = 'OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELED';
+
+export interface Ride {
+  id: number;
+  driver: User;
+  originCity: string;
+  originDistrict: string;
+  destinationCity: string;
+  destinationDistrict: string;
+  departTime: string;
+  price: number;
+  status: RideStatus;
+}
+
+export interface CreateRideRequest {
+  originCity: string;
+  originDistrict: string;
+  destinationCity: string;
+  destinationDistrict: string;
+  departTime: string;
+  price: number;
+}
+
+export interface UpdateRideStatusRequest {
+  status: RideStatus;
+}
+
