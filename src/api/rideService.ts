@@ -21,4 +21,9 @@ export const rideService = {
     const response = await api.put<Ride>(`/rides/${id}`, data);
     return response.data;
   },
+
+  getRidesAsGuest: async (): Promise<Ride[]> => {
+    const response = await api.get<Ride[]>('/rides/as-guest');
+    return response.data;
+  },
 };

@@ -148,7 +148,10 @@ const Home: React.FC = () => {
                   </div>
                   
                   <div className="ride-footer">
-                    <span className="driver-name">{ride.driver.firstName} {ride.driver.lastName}</span>
+                    <div>
+                      <span className="driver-name">{ride.driver.firstName} {ride.driver.lastName}</span>
+                      <span className="driver-score">⭐ {ride.driver.score?.toFixed(1) || '0.0'}</span>
+                    </div>
                     <span className="vehicle-info-small">
                       {ride.driver.vehicle?.brand} {ride.driver.vehicle?.model}
                     </span>

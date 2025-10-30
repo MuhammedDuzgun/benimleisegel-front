@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   phone: string;
   vehicle?: Vehicle;
+  score?: number;
 }
 
 export interface Vehicle {
@@ -85,5 +86,22 @@ export interface CreateRideRequestRequest {
 
 export interface UpdateRideRequestStatusRequest {
   status: RideRequestStatus;
+}
+
+export interface Rate {
+  id: number;
+  score: number;
+  comment: string;
+  raterUser: User;
+  ratedUser: User;
+  ride: Ride;
+  createdAt: string;
+}
+
+export interface CreateRateRequest {
+  score: number;
+  comment: string;
+  targetUserId: number;
+  targetRideId: number;
 }
 

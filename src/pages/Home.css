@@ -341,6 +341,13 @@
   font-size: 16px;
 }
 
+.driver-score {
+  font-size: 13px;
+  color: #667eea;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
 .vehicle-info-small {
   font-size: 13px;
   color: #999;

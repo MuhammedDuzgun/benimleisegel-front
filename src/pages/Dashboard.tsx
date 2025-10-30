@@ -252,9 +252,14 @@ const Dashboard: React.FC = () => {
         <Link to="/" className="site-logo">
           <h1>Benimle İşe Gel</h1>
         </Link>
-        <button onClick={handleLogout} className="btn-secondary">
-          Çıkış Yap
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Link to="/ratings" className="btn-secondary">
+            ⭐ Değerlendirmeler
+          </Link>
+          <button onClick={handleLogout} className="btn-secondary">
+            Çıkış Yap
+          </button>
+        </div>
       </nav>
 
       <div className="dashboard-content">
@@ -264,6 +269,7 @@ const Dashboard: React.FC = () => {
             <p><strong>Ad Soyad:</strong> {user?.firstName} {user?.lastName}</p>
             <p><strong>E-posta:</strong> {user?.email}</p>
             <p><strong>Telefon:</strong> {user?.phone}</p>
+            <p><strong>Skorunuz:</strong> ⭐ {user?.score?.toFixed(1) || '0.0'} / 5.0</p>
           </div>
           <button onClick={handleDeleteAccount} className="btn-danger">
             Hesabı Sil
@@ -510,7 +516,7 @@ const Dashboard: React.FC = () => {
                       value={ride.status}
                       onChange={(e) => handleStatusUpdate(ride.id, ride.status, e.target.value as RideStatus)}
                       className="status-select"
-                      disabled={updatingRideId === ride.id}
+                      disabled={updatingRideId === ride.id || ride.status === 'COMPLETED'}
                     >
                       <option value="OPEN">Açık</option>
                       <option value="ONGOING">Devam Ediyor</option>
@@ -520,6 +526,11 @@ const Dashboard: React.FC = () => {
                     {updatingRideId === ride.id && (
                       <div className="updating-indicator">
                         <div className="small-spinner"></div>
+                      </div>
+                    )}
+                    {ride.status === 'COMPLETED' && (
+                      <div className="completed-info">
+                        ℹ️ Tamamlanan yolculuğun durumu değiştirilemez
                       </div>
                     )}
                   </div>
@@ -541,6 +552,9 @@ const Dashboard: React.FC = () => {
                             <p><strong>{request.guest?.firstName} {request.guest?.lastName}</strong></p>
                             <p style={{ fontSize: '0.9em', color: '#666' }}>
                               📧 {request.guest?.email} | 📞 {request.guest?.phone}
+                            </p>
+                            <p style={{ fontSize: '0.9em', color: '#667eea', fontWeight: 600 }}>
+                              ⭐ {request.guest?.score?.toFixed(1) || '0.0'} / 5.0
                             </p>
                             <span className={`request-status-badge ${request.status.toLowerCase()}`}>
                               {getRequestStatusLabel(request.status)}
@@ -601,7 +615,10 @@ const Dashboard: React.FC = () => {
                       <span className="price">₺{request.ride.price.toFixed(2)}</span>
                     </div>
                     <p style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
-                      Sürücü: {request.ride.driver.firstName} {request.ride.driver.lastName}
+                      Sürücü: {request.ride.driver.firstName} {request.ride.driver.lastName} 
+                      <span style={{ color: '#667eea', fontWeight: 600, marginLeft: '8px' }}>
+                        ⭐ {request.ride.driver.score?.toFixed(1) || '0.0'}
+                      </span>
                     </p>
                   </div>
                   <div className={`request-status-badge ${request.status.toLowerCase()}`}>
