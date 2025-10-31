@@ -39,8 +39,10 @@ const RideMap: React.FC<RideMapProps> = ({
   const [mapLoaded, setMapLoaded] = React.useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
 
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: 'AIzaSyD818Ugqul9pgrre7xJdzukiCSy1r4cpTs',
+    googleMapsApiKey: apiKey,
     libraries,
   });
 

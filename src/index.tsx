@@ -4,6 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Google Maps API script'ini dinamik olarak yükle
+const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+if (apiKey && !document.querySelector('script[src*="maps.googleapis.com"]')) {
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
