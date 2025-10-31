@@ -4,7 +4,7 @@ import { rideService } from '../api/rideService';
 import { rideRequestService } from '../api/rideRequestService';
 import { useAuth } from '../context/AuthContext';
 import { Ride } from '../types';
-import RideMap from '../components/RideMap';
+import RideModal from '../components/RideModal';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -14,7 +14,7 @@ const Home: React.FC = () => {
   const [requestingRideId, setRequestingRideId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [expandedRideId, setExpandedRideId] = useState<number | null>(null);
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -140,114 +140,65 @@ const Home: React.FC = () => {
           </div>
         ) : (
           <div className="rides-grid">
-            {rides.map((ride) => {
-              const isExpanded = expandedRideId === ride.id;
-              return (
-                <div key={ride.id} className="ride-card" onClick={() => setExpandedRideId(isExpanded ? null : ride.id)} style={{ cursor: 'pointer' }}>
-                  <div className="ride-header">
-                    <h3 className="ride-title">{ride.title}</h3>
-                  </div>
-                  
-                  <div className="ride-body">
-                    {/* Temel Bilgiler - Her zaman görünür */}
-                    <div className="ride-basic-info">
-                      <div className="ride-basic-row">
-                        <div className="ride-basic-item">
-                          <span className="basic-icon">🕒</span>
-                          <span className="basic-text">{formatDateTime(ride.departTime)}</span>
-                        </div>
-                        {ride.distanceInMeters > 0 && (
-                          <div className="ride-basic-item">
-                            <span className="basic-icon">📏</span>
-                            <span className="basic-text">{formatDistance(ride.distanceInMeters)} • {formatDuration(ride.durationInSeconds)}</span>
-                          </div>
-                        )}
+            {rides.map((ride) => (
+              <div 
+                key={ride.id} 
+                className="ride-card" 
+                onClick={() => setSelectedRide(ride)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="ride-header">
+                  <h3 className="ride-title">{ride.title}</h3>
+                </div>
+                
+                <div className="ride-body">
+                  {/* Temel Bilgiler - Her zaman görünür */}
+                  <div className="ride-basic-info">
+                    <div className="ride-basic-row">
+                      <div className="ride-basic-item">
+                        <span className="basic-icon">🕒</span>
+                        <span className="basic-text">{formatDateTime(ride.departTime)}</span>
                       </div>
-                      
-                      <div className="ride-basic-row">
+                      {ride.distanceInMeters > 0 && (
                         <div className="ride-basic-item">
-                          <span className="basic-icon">💰</span>
-                          <span className="basic-text price-text">₺{ride.price.toFixed(2)}</span>
+                          <span className="basic-icon">📏</span>
+                          <span className="basic-text">{formatDistance(ride.distanceInMeters)} • {formatDuration(ride.durationInSeconds)}</span>
                         </div>
-                        <div className="ride-basic-item">
-                          <span className="basic-icon">👤</span>
-                          <span className="basic-text">{ride.driver.firstName} {ride.driver.lastName}</span>
-                          <span className="driver-score-small">⭐ {ride.driver.score?.toFixed(1) || '0.0'}</span>
-                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="ride-basic-row">
+                      <div className="ride-basic-item">
+                        <span className="basic-icon">💰</span>
+                        <span className="basic-text price-text">₺{ride.price.toFixed(2)}</span>
+                      </div>
+                      <div className="ride-basic-item">
+                        <span className="basic-icon">👤</span>
+                        <span className="basic-text">{ride.driver.firstName} {ride.driver.lastName}</span>
+                        <span className="driver-score-small">⭐ {ride.driver.score?.toFixed(1) || '0.0'}</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Genişletilmiş Detaylar - Sadece açıkken görünür */}
-                    {isExpanded && (
-                      <div className="ride-expanded-details">
-                        <div className="ride-addresses-compact">
-                          <div className="address-item">
-                            <span className="address-icon">📍</span>
-                            <span className="address-text" title={ride.originAddress}>{ride.originAddress}</span>
-                          </div>
-                          <div className="address-item">
-                            <span className="address-icon">🎯</span>
-                            <span className="address-text" title={ride.destinationAddress}>{ride.destinationAddress}</span>
-                          </div>
-                        </div>
-
-                        {ride.driver.vehicle && (
-                          <div className="vehicle-detail">
-                            <span className="vehicle-icon">🚗</span>
-                            <span className="vehicle-text">{ride.driver.vehicle.brand} {ride.driver.vehicle.model}</span>
-                          </div>
-                        )}
-
-                        {ride.originLatitude && ride.originLongitude && 
-                         ride.destinationLatitude && ride.destinationLongitude && (
-                          <div style={{ marginTop: '15px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd' }}>
-                            <RideMap
-                              originLat={ride.originLatitude}
-                              originLng={ride.originLongitude}
-                              destLat={ride.destinationLatitude}
-                              destLng={ride.destinationLongitude}
-                              height="300px"
-                              showDistance={true}
-                            />
-                          </div>
-                        )}
-
-                        {isAuthenticated && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRideRequest(ride.id);
-                            }}
-                            className="btn-request"
-                            disabled={requestingRideId === ride.id}
-                            style={{ marginTop: '15px', width: '100%' }}
-                          >
-                            {requestingRideId === ride.id ? 'Gönderiliyor...' : 'Talepte Bulun'}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {!isExpanded && isAuthenticated && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRideRequest(ride.id);
-                        }}
-                        className="btn-request"
-                        disabled={requestingRideId === ride.id}
-                        style={{ marginTop: '15px', width: '100%' }}
-                      >
-                        {requestingRideId === ride.id ? 'Gönderiliyor...' : 'Talepte Bulun'}
-                      </button>
-                    )}
+                  <div style={{ marginTop: '15px', padding: '10px', background: '#f0f4ff', borderRadius: '8px', textAlign: 'center', color: '#667eea', fontWeight: '600' }}>
+                    📋 Detayları görüntülemek için tıklayın
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      <RideModal
+        ride={selectedRide}
+        isOpen={selectedRide !== null}
+        onClose={() => setSelectedRide(null)}
+        onRequestRide={handleRideRequest}
+        isAuthenticated={isAuthenticated}
+        requestingRideId={requestingRideId}
+      />
 
       <div className="features-section">
         <h3>Neden Benimle İşe Gel?</h3>

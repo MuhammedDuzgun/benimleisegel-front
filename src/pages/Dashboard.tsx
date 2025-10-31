@@ -5,6 +5,7 @@ import { vehicleService } from '../api/vehicleService';
 import { userService } from '../api/userService';
 import { rideService } from '../api/rideService';
 import { rideRequestService } from '../api/rideRequestService';
+import { rideAIService } from '../api/rideAIService';
 import { User, Ride, RideStatus, RideRequest, RideRequestStatus } from '../types';
 import PlacesAutocomplete from '../components/PlacesAutocomplete';
 import RideMap from '../components/RideMap';
@@ -40,6 +41,9 @@ const Dashboard: React.FC = () => {
   const [vehicleSuccess, setVehicleSuccess] = useState('');
   const [rideError, setRideError] = useState('');
   const [rideSuccess, setRideSuccess] = useState('');
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   useEffect(() => {
     fetchUserData();
@@ -152,6 +156,40 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleGetAISuggestion = async () => {
+    if (!rideData.distanceInMeters || !rideData.durationInSeconds || !user?.vehicle) {
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError('');
+    setAiSuggestion(null);
+
+    try {
+      const response = await rideAIService.getPriceSuggestion({
+        distanceInMeters: rideData.distanceInMeters,
+        durationInSeconds: rideData.durationInSeconds,
+        carBrand: user.vehicle.brand,
+        carModel: user.vehicle.model,
+      });
+
+      setAiSuggestion(response.message);
+
+      // AI önerisinden fiyat çıkarmaya çalış (eğer varsa)
+      const priceMatch = response.message.match(/₺?(\d+[.,]\d+)/);
+      if (priceMatch) {
+        const suggestedPrice = parseFloat(priceMatch[1].replace(',', '.'));
+        if (!isNaN(suggestedPrice)) {
+          // Önerilen fiyatı otomatik doldurma seçeneği sunabiliriz
+        }
+      }
+    } catch (err: any) {
+      setAiError(err.response?.data?.message || 'AI önerisi alınırken bir hata oluştu.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -253,6 +291,8 @@ const Dashboard: React.FC = () => {
         departTime: '',
         price: 0,
       });
+      setAiSuggestion(null);
+      setAiError('');
       setShowRideForm(false);
       await loadUserRides();
       setTimeout(() => setRideSuccess(''), 3000);
@@ -540,16 +580,90 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label htmlFor="price">Fiyat (₺)</label>
-                  <input
-                    type="number"
-                    id="price"
-                    value={rideData.price || ''}
-                    onChange={(e) => setRideData({ ...rideData, price: parseFloat(e.target.value) })}
-                    required
-                    placeholder="350.50"
-                    step="0.01"
-                    min="0"
-                  />
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <input
+                      type="number"
+                      id="price"
+                      value={rideData.price || ''}
+                      onChange={(e) => {
+                        setRideData({ ...rideData, price: parseFloat(e.target.value) });
+                        setAiSuggestion(null);
+                      }}
+                      required
+                      placeholder="350.50"
+                      step="0.01"
+                      min="0"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGetAISuggestion}
+                      disabled={
+                        !rideData.distanceInMeters || 
+                        !rideData.durationInSeconds || 
+                        rideData.distanceInMeters === 0 || 
+                        rideData.durationInSeconds === 0 ||
+                        !user?.vehicle ||
+                        aiLoading
+                      }
+                      className="btn-secondary"
+                      style={{ 
+                        whiteSpace: 'nowrap',
+                        opacity: (!rideData.distanceInMeters || !rideData.durationInSeconds || !user?.vehicle) ? 0.6 : 1,
+                        cursor: (!rideData.distanceInMeters || !rideData.durationInSeconds || !user?.vehicle) ? 'not-allowed' : 'pointer'
+                      }}
+                      title={(!rideData.distanceInMeters || !rideData.durationInSeconds) ? 'Önce kalkış ve varış adreslerini seçin ve rota hesaplanana kadar bekleyin.' : 'AI ile ücret önerisi al'}
+                    >
+                      {aiLoading ? '⏳' : '🤖 AI Önerisi'}
+                    </button>
+                  </div>
+                  {aiSuggestion && (
+                    <div style={{ 
+                      marginTop: '10px', 
+                      padding: '12px', 
+                      background: '#e8f5e9', 
+                      border: '1px solid #4caf50',
+                      borderRadius: '8px',
+                      fontSize: '0.9em',
+                      color: '#2e7d32'
+                    }}>
+                      <strong>🤖 AI Önerisi:</strong> {aiSuggestion}
+                      <button
+                        type="button"
+                        onClick={() => setAiSuggestion(null)}
+                        style={{
+                          marginLeft: '10px',
+                          background: 'none',
+                          border: 'none',
+                          color: '#2e7d32',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '0 5px'
+                        }}
+                        title="Öneriyi kapat"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  {aiError && (
+                    <div style={{ 
+                      marginTop: '10px', 
+                      padding: '12px', 
+                      background: '#ffebee', 
+                      border: '1px solid #f44336',
+                      borderRadius: '8px',
+                      fontSize: '0.9em',
+                      color: '#c62828'
+                    }}>
+                      ⚠️ {aiError}
+                    </div>
+                  )}
+                  {(!rideData.distanceInMeters || !rideData.durationInSeconds) && (
+                    <p style={{ fontSize: '0.85em', color: '#666', marginTop: '5px', fontStyle: 'italic' }}>
+                      💡 AI önerisi almak için önce kalkış ve varış adreslerini seçin ve rota hesaplanana kadar bekleyin.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -574,6 +688,8 @@ const Dashboard: React.FC = () => {
                       departTime: '',
                       price: 0,
                     });
+                    setAiSuggestion(null);
+                    setAiError('');
                     setRideError('');
                   }}
                   className="btn-secondary"
