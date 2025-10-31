@@ -128,7 +128,7 @@ const Ratings: React.FC = () => {
         </div>
         <div className="rate-ride-info">
           <span className="ride-route-small">
-            {rate.ride.originCity} → {rate.ride.destinationCity}
+            📍 {rate.ride.originAddress} → 🎯 {rate.ride.destinationAddress}
           </span>
           <span className="ride-date-small">🕒 {formatDateTime(rate.ride.departTime)}</span>
         </div>
@@ -190,9 +190,9 @@ const Ratings: React.FC = () => {
                       >
                         <div className="ride-select-header">
                           <div className="ride-select-route">
-                            <span className="city">{ride.originCity}</span>
+                            <span className="city">📍 {ride.originAddress}</span>
                             <span className="arrow">→</span>
-                            <span className="city">{ride.destinationCity}</span>
+                            <span className="city">🎯 {ride.destinationAddress}</span>
                           </div>
                           <span className="ride-select-date">🕒 {formatDateTime(ride.departTime)}</span>
                         </div>

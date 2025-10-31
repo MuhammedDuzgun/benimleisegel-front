@@ -48,21 +48,31 @@ export type RideStatus = 'OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELED';
 
 export interface Ride {
   id: number;
+  title: string;
   driver: User;
-  originCity: string;
-  originDistrict: string;
-  destinationCity: string;
-  destinationDistrict: string;
+  originAddress: string;
+  destinationAddress: string;
+  distanceInMeters: number;
+  durationInSeconds: number;
+  originLatitude: number;
+  originLongitude: number;
+  destinationLatitude: number;
+  destinationLongitude: number;
   departTime: string;
   price: number;
   status: RideStatus;
 }
 
 export interface CreateRideRequest {
-  originCity: string;
-  originDistrict: string;
-  destinationCity: string;
-  destinationDistrict: string;
+  title: string;
+  originAddress: string;
+  destinationAddress: string;
+  distanceInMeters: number;
+  durationInSeconds: number;
+  originLatitude: number;
+  originLongitude: number;
+  destinationLatitude: number;
+  destinationLongitude: number;
   departTime: string;
   price: number;
 }

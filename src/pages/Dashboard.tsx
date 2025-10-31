@@ -6,6 +6,8 @@ import { userService } from '../api/userService';
 import { rideService } from '../api/rideService';
 import { rideRequestService } from '../api/rideRequestService';
 import { User, Ride, RideStatus, RideRequest, RideRequestStatus } from '../types';
+import PlacesAutocomplete from '../components/PlacesAutocomplete';
+import RideMap from '../components/RideMap';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -20,10 +22,15 @@ const Dashboard: React.FC = () => {
   const [selectedRideId, setSelectedRideId] = useState<number | null>(null);
   const [vehicleData, setVehicleData] = useState({ plate: '', brand: '', model: '' });
   const [rideData, setRideData] = useState({
-    originCity: '',
-    originDistrict: '',
-    destinationCity: '',
-    destinationDistrict: '',
+    title: '',
+    originAddress: '',
+    originLatitude: 0,
+    originLongitude: 0,
+    destinationAddress: '',
+    destinationLatitude: 0,
+    destinationLongitude: 0,
+    distanceInMeters: 0,
+    durationInSeconds: 0,
     departTime: '',
     price: 0,
   });
@@ -124,6 +131,27 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const formatDistance = (meters: number): string => {
+    if (meters >= 1000) {
+      const km = (meters / 1000).toFixed(1);
+      return `${km} km`;
+    }
+    return `${meters} m`;
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0 && minutes > 0) {
+      return `${hours} sa ${minutes} dk`;
+    } else if (hours > 0) {
+      return `${hours} saat`;
+    } else {
+      return `${minutes} dakika`;
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -181,17 +209,47 @@ const Dashboard: React.FC = () => {
     setLoading(true);
 
     try {
+      if (!rideData.originLatitude || !rideData.originLongitude || 
+          !rideData.destinationLatitude || !rideData.destinationLongitude ||
+          rideData.originLatitude === 0 || rideData.originLongitude === 0 ||
+          rideData.destinationLatitude === 0 || rideData.destinationLongitude === 0) {
+        setRideError('Lütfen geçerli başlangıç ve varış adreslerini seçin. Adresler otomatik tamamlanmalı ve koordinatlar belirlenmiş olmalı.');
+        setLoading(false);
+        return;
+      }
+
+      if (!rideData.distanceInMeters || !rideData.durationInSeconds) {
+        setRideError('Lütfen rota hesaplanana kadar bekleyin. Harita üzerinde mesafe ve süre görünmelidir.');
+        setLoading(false);
+        return;
+      }
+
       const submitData = {
-        ...rideData,
+        title: rideData.title,
+        originAddress: rideData.originAddress,
+        destinationAddress: rideData.destinationAddress,
+        distanceInMeters: rideData.distanceInMeters,
+        durationInSeconds: rideData.durationInSeconds,
+        originLatitude: rideData.originLatitude,
+        originLongitude: rideData.originLongitude,
+        destinationLatitude: rideData.destinationLatitude,
+        destinationLongitude: rideData.destinationLongitude,
         departTime: new Date(rideData.departTime).toISOString(),
+        price: rideData.price,
       };
+      
       await rideService.createRide(submitData);
       setRideSuccess('Yolculuk başarıyla oluşturuldu!');
       setRideData({
-        originCity: '',
-        originDistrict: '',
-        destinationCity: '',
-        destinationDistrict: '',
+        title: '',
+        originAddress: '',
+        originLatitude: 0,
+        originLongitude: 0,
+        destinationAddress: '',
+        destinationLatitude: 0,
+        destinationLongitude: 0,
+        distanceInMeters: 0,
+        durationInSeconds: 0,
         departTime: '',
         price: 0,
       });
@@ -381,54 +439,92 @@ const Dashboard: React.FC = () => {
           {showRideForm && (
             <form onSubmit={handleRideSubmit} className="ride-form">
               <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="originCity">Başlangıç Şehri</label>
+                <div className="form-group" style={{ flex: '1 1 100%' }}>
+                  <label htmlFor="title">Yolculuk Başlığı</label>
                   <input
                     type="text"
-                    id="originCity"
-                    value={rideData.originCity}
-                    onChange={(e) => setRideData({ ...rideData, originCity: e.target.value })}
+                    id="title"
+                    value={rideData.title}
+                    onChange={(e) => setRideData({ ...rideData, title: e.target.value })}
                     required
-                    placeholder="İstanbul"
+                    placeholder="Örn: İşe Gidiş - Mardin-Nusaybin"
+                    className="form-input"
                   />
                 </div>
+              </div>
+              
+              <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="originDistrict">Başlangıç İlçesi</label>
-                  <input
-                    type="text"
-                    id="originDistrict"
-                    value={rideData.originDistrict}
-                    onChange={(e) => setRideData({ ...rideData, originDistrict: e.target.value })}
-                    required
-                    placeholder="Kadıköy"
+                  <label htmlFor="originAddress">Başlangıç Adresi</label>
+                  <PlacesAutocomplete
+                    id="originAddress"
+                    value={rideData.originAddress}
+                    onChange={(address, city, district, lat, lng) => {
+                      setRideData({
+                        ...rideData,
+                        originAddress: address,
+                        originLatitude: lat,
+                        originLongitude: lng,
+                      });
+                    }}
+                    placeholder="Başlangıç adresini girin..."
+                    className="form-input"
                   />
+                  {rideData.originAddress && (
+                    <p style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
+                      ✓ Adres seçildi
+                    </p>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="destinationAddress">Varış Adresi</label>
+                  <PlacesAutocomplete
+                    id="destinationAddress"
+                    value={rideData.destinationAddress}
+                    onChange={(address, city, district, lat, lng) => {
+                      setRideData({
+                        ...rideData,
+                        destinationAddress: address,
+                        destinationLatitude: lat,
+                        destinationLongitude: lng,
+                      });
+                    }}
+                    placeholder="Varış adresini girin..."
+                    className="form-input"
+                  />
+                  {rideData.destinationAddress && (
+                    <p style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
+                      ✓ Adres seçildi
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="destinationCity">Varış Şehri</label>
-                  <input
-                    type="text"
-                    id="destinationCity"
-                    value={rideData.destinationCity}
-                    onChange={(e) => setRideData({ ...rideData, destinationCity: e.target.value })}
-                    required
-                    placeholder="Ankara"
-                  />
+              {rideData.originLatitude && rideData.originLongitude && 
+               rideData.destinationLatitude && rideData.destinationLongitude && (
+                <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+                  <label style={{ marginBottom: '10px', display: 'block', fontWeight: 'bold' }}>
+                    🗺️ Rota Önizlemesi
+                  </label>
+                  <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                    <RideMap
+                      originLat={rideData.originLatitude}
+                      originLng={rideData.originLongitude}
+                      destLat={rideData.destinationLatitude}
+                      destLng={rideData.destinationLongitude}
+                      height="300px"
+                      showDistance={true}
+                      onRouteCalculated={(distance, duration) => {
+                        setRideData({
+                          ...rideData,
+                          distanceInMeters: distance.value,
+                          durationInSeconds: duration.value,
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label htmlFor="destinationDistrict">Varış İlçesi</label>
-                  <input
-                    type="text"
-                    id="destinationDistrict"
-                    value={rideData.destinationDistrict}
-                    onChange={(e) => setRideData({ ...rideData, destinationDistrict: e.target.value })}
-                    required
-                    placeholder="Çankaya"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">
@@ -466,10 +562,15 @@ const Dashboard: React.FC = () => {
                   onClick={() => {
                     setShowRideForm(false);
                     setRideData({
-                      originCity: '',
-                      originDistrict: '',
-                      destinationCity: '',
-                      destinationDistrict: '',
+                      title: '',
+                      originAddress: '',
+                      originLatitude: 0,
+                      originLongitude: 0,
+                      destinationAddress: '',
+                      destinationLatitude: 0,
+                      destinationLongitude: 0,
+                      distanceInMeters: 0,
+                      durationInSeconds: 0,
                       departTime: '',
                       price: 0,
                     });
@@ -495,14 +596,23 @@ const Dashboard: React.FC = () => {
                 <div key={ride.id} className="my-ride-card">
                   <div className="ride-card-header">
                     <div className="ride-route-info">
+                      <h3 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: '700', color: '#333' }}>
+                        {ride.title}
+                      </h3>
                       <div className="route-cities">
-                        <span className="city">{ride.originCity} ({ride.originDistrict})</span>
-                        <span className="arrow">→</span>
-                        <span className="city">{ride.destinationCity} ({ride.destinationDistrict})</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9em', color: '#666' }}>
+                          <span>📍 {ride.originAddress}</span>
+                          <span>🎯 {ride.destinationAddress}</span>
+                        </div>
                       </div>
                       <div className="ride-meta">
                         <span>🕒 {formatDateTime(ride.departTime)}</span>
                         <span className="price">₺{ride.price.toFixed(2)}</span>
+                        {ride.distanceInMeters > 0 && (
+                          <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '10px' }}>
+                            📏 {formatDistance(ride.distanceInMeters)} • ⏱️ {formatDuration(ride.durationInSeconds)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="ride-status-badge" data-status={ride.status.toLowerCase()}>
@@ -605,10 +715,14 @@ const Dashboard: React.FC = () => {
               {myRequests.map((request) => (
                 <div key={request.id} className="request-ride-card">
                   <div className="ride-route-info">
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '700', color: '#333' }}>
+                      {request.ride.title}
+                    </h4>
                     <div className="route-cities">
-                      <span className="city">{request.ride.originCity} ({request.ride.originDistrict})</span>
-                      <span className="arrow">→</span>
-                      <span className="city">{request.ride.destinationCity} ({request.ride.destinationDistrict})</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>
+                        <span>📍 {request.ride.originAddress}</span>
+                        <span>🎯 {request.ride.destinationAddress}</span>
+                      </div>
                     </div>
                     <div className="ride-meta">
                       <span>🕒 {formatDateTime(request.ride.departTime)}</span>
