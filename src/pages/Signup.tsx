@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import './Auth.css';
 
 const Signup: React.FC = () => {
@@ -11,9 +12,9 @@ const Signup: React.FC = () => {
     lastName: '',
     phone: '',
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup, isAuthenticated } = useAuth();
+  const { showError } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,14 +30,13 @@ const Signup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
       await signup(formData);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.');
+      showError(err.response?.data?.message || err.message || 'Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -49,8 +49,6 @@ const Signup: React.FC = () => {
           <h1>Benimle İşe Gel</h1>
         </Link>
         <h2>Kayıt Ol</h2>
-        
-        {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="form-row">

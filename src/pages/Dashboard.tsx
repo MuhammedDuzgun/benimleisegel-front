@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { vehicleService } from '../api/vehicleService';
 import { userService } from '../api/userService';
 import { rideService } from '../api/rideService';
@@ -13,6 +14,7 @@ import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { logout } = useAuth();
+  const { showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [rides, setRides] = useState<Ride[]>([]);
@@ -37,13 +39,8 @@ const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [updatingRideId, setUpdatingRideId] = useState<number | null>(null);
-  const [vehicleError, setVehicleError] = useState('');
-  const [vehicleSuccess, setVehicleSuccess] = useState('');
-  const [rideError, setRideError] = useState('');
-  const [rideSuccess, setRideSuccess] = useState('');
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState('');
 
   useEffect(() => {
     fetchUserData();
@@ -56,7 +53,7 @@ const Dashboard: React.FC = () => {
       const userData = await userService.getAuthenticatedUser();
       setUser(userData);
     } catch (err: any) {
-      setVehicleError('Kullanıcı bilgileri yüklenemedi.');
+      showError('Kullanıcı bilgileri yüklenemedi.');
     }
   };
 
@@ -99,19 +96,15 @@ const Dashboard: React.FC = () => {
   };
 
   const handleRequestStatusUpdate = async (requestId: number, newStatus: RideRequestStatus) => {
-    setRideError('');
-    setRideSuccess('');
-
     try {
       await rideRequestService.updateRideRequestStatus(requestId, { status: newStatus });
-      setRideSuccess(`Talep durumu "${getRequestStatusLabel(newStatus)}" olarak güncellendi!`);
+      showSuccess(`Talep durumu "${getRequestStatusLabel(newStatus)}" olarak güncellendi!`);
       if (selectedRideId) {
         await loadRideRequests(selectedRideId);
       }
-      setTimeout(() => setRideSuccess(''), 3000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Talep durumu güncellenirken bir hata oluştu.';
-      setRideError(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -162,7 +155,6 @@ const Dashboard: React.FC = () => {
     }
 
     setAiLoading(true);
-    setAiError('');
     setAiSuggestion(null);
 
     try {
@@ -184,7 +176,7 @@ const Dashboard: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setAiError(err.response?.data?.message || 'AI önerisi alınırken bir hata oluştu.');
+      showError(err.response?.data?.message || 'AI önerisi alınırken bir hata oluştu.');
     } finally {
       setAiLoading(false);
     }
@@ -199,29 +191,27 @@ const Dashboard: React.FC = () => {
     if (window.confirm('Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
       try {
         await userService.deleteUser();
+        showSuccess('Hesabınız başarıyla silindi.');
         logout();
         navigate('/login');
       } catch (err: any) {
-        setVehicleError('Hesap silinirken bir hata oluştu.');
+        showError('Hesap silinirken bir hata oluştu.');
       }
     }
   };
 
   const handleVehicleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setVehicleError('');
-    setVehicleSuccess('');
     setLoading(true);
 
     try {
       await vehicleService.addVehicle(vehicleData);
-      setVehicleSuccess('Araç başarıyla eklendi!');
+      showSuccess('Araç başarıyla eklendi!');
       setVehicleData({ plate: '', brand: '', model: '' });
       setShowVehicleForm(false);
       await fetchUserData();
-      setTimeout(() => setVehicleSuccess(''), 3000);
     } catch (err: any) {
-      setVehicleError(err.response?.data?.message || 'Araç eklenirken bir hata oluştu.');
+      showError(err.response?.data?.message || 'Araç eklenirken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -231,19 +221,16 @@ const Dashboard: React.FC = () => {
     if (window.confirm('Aracınızı silmek istediğinizden emin misiniz?')) {
       try {
         await vehicleService.deleteVehicle();
-        setVehicleSuccess('Araç başarıyla silindi!');
+        showSuccess('Araç başarıyla silindi!');
         await fetchUserData();
-        setTimeout(() => setVehicleSuccess(''), 3000);
       } catch (err: any) {
-        setVehicleError('Araç silinirken bir hata oluştu.');
+        showError('Araç silinirken bir hata oluştu.');
       }
     }
   };
 
   const handleRideSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRideError('');
-    setRideSuccess('');
     setLoading(true);
 
     try {
@@ -251,13 +238,13 @@ const Dashboard: React.FC = () => {
           !rideData.destinationLatitude || !rideData.destinationLongitude ||
           rideData.originLatitude === 0 || rideData.originLongitude === 0 ||
           rideData.destinationLatitude === 0 || rideData.destinationLongitude === 0) {
-        setRideError('Lütfen geçerli başlangıç ve varış adreslerini seçin. Adresler otomatik tamamlanmalı ve koordinatlar belirlenmiş olmalı.');
+        showError('Lütfen geçerli başlangıç ve varış adreslerini seçin. Adresler otomatik tamamlanmalı ve koordinatlar belirlenmiş olmalı.');
         setLoading(false);
         return;
       }
 
       if (!rideData.distanceInMeters || !rideData.durationInSeconds) {
-        setRideError('Lütfen rota hesaplanana kadar bekleyin. Harita üzerinde mesafe ve süre görünmelidir.');
+        showError('Lütfen rota hesaplanana kadar bekleyin. Harita üzerinde mesafe ve süre görünmelidir.');
         setLoading(false);
         return;
       }
@@ -277,7 +264,7 @@ const Dashboard: React.FC = () => {
       };
       
       await rideService.createRide(submitData);
-      setRideSuccess('Yolculuk başarıyla oluşturuldu!');
+      showSuccess('Yolculuk başarıyla oluşturuldu!');
       setRideData({
         title: '',
         originAddress: '',
@@ -292,12 +279,10 @@ const Dashboard: React.FC = () => {
         price: 0,
       });
       setAiSuggestion(null);
-      setAiError('');
       setShowRideForm(false);
       await loadUserRides();
-      setTimeout(() => setRideSuccess(''), 3000);
     } catch (err: any) {
-      setRideError(err.response?.data?.message || 'Yolculuk oluşturulurken bir hata oluştu.');
+      showError(err.response?.data?.message || 'Yolculuk oluşturulurken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -315,18 +300,15 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    setRideError('');
-    setRideSuccess('');
     setUpdatingRideId(rideId);
 
     try {
       await rideService.updateRideStatus(rideId, { status: newStatus });
-      setRideSuccess(`Yolculuk durumu "${statusLabel}" olarak güncellendi!`);
+      showSuccess(`Yolculuk durumu "${statusLabel}" olarak güncellendi!`);
       await loadUserRides();
-      setTimeout(() => setRideSuccess(''), 3000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Durum güncellenirken bir hata oluştu.';
-      setRideError(errorMessage);
+      showError(errorMessage);
       // Hata durumunda liste yenileniyor, böylece select eski değerine dönüyor
       await loadUserRides();
     } finally {
@@ -376,9 +358,6 @@ const Dashboard: React.FC = () => {
 
         <div className="vehicle-section">
           <h2>Araç Bilgileri</h2>
-          
-          {vehicleError && <div className="error-message">{vehicleError}</div>}
-          {vehicleSuccess && <div className="success-message">{vehicleSuccess}</div>}
 
           {user?.vehicle && !showVehicleForm && (
             <div className="vehicle-info">
@@ -447,7 +426,6 @@ const Dashboard: React.FC = () => {
                   onClick={() => {
                     setShowVehicleForm(false);
                     setVehicleData({ plate: '', brand: '', model: '' });
-                    setVehicleError('');
                   }}
                   className="btn-secondary"
                 >
@@ -460,9 +438,6 @@ const Dashboard: React.FC = () => {
 
         <div className="rides-section">
           <h2>Yolculuklarım</h2>
-          
-          {rideError && <div className="error-message">{rideError}</div>}
-          {rideSuccess && <div className="success-message">{rideSuccess}</div>}
 
           {!user?.vehicle && (
             <div className="info-message">
@@ -487,7 +462,7 @@ const Dashboard: React.FC = () => {
                     value={rideData.title}
                     onChange={(e) => setRideData({ ...rideData, title: e.target.value })}
                     required
-                    placeholder="Örn: İşe Gidiş - Mardin-Nusaybin"
+                    placeholder="Örn: İşe Gidiş - İstanbul Kadıköy - Maslak"
                     className="form-input"
                   />
                 </div>
@@ -540,8 +515,10 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {rideData.originLatitude && rideData.originLongitude && 
-               rideData.destinationLatitude && rideData.destinationLongitude && (
+              {(rideData.originLatitude && rideData.originLongitude && 
+               rideData.destinationLatitude && rideData.destinationLongitude &&
+               rideData.originLatitude !== 0 && rideData.originLongitude !== 0 &&
+               rideData.destinationLatitude !== 0 && rideData.destinationLongitude !== 0) ? (
                 <div style={{ marginTop: '20px', marginBottom: '20px' }}>
                   <label style={{ marginBottom: '10px', display: 'block', fontWeight: 'bold' }}>
                     🗺️ Rota Önizlemesi
@@ -564,7 +541,7 @@ const Dashboard: React.FC = () => {
                     />
                   </div>
                 </div>
-              )}
+              ) : null}
 
               <div className="form-row">
                 <div className="form-group">
@@ -588,6 +565,9 @@ const Dashboard: React.FC = () => {
                       onChange={(e) => {
                         setRideData({ ...rideData, price: parseFloat(e.target.value) });
                         setAiSuggestion(null);
+                      }}
+                      onWheel={(e) => {
+                        e.currentTarget.blur();
                       }}
                       required
                       placeholder="350.50"
@@ -646,19 +626,6 @@ const Dashboard: React.FC = () => {
                       </button>
                     </div>
                   )}
-                  {aiError && (
-                    <div style={{ 
-                      marginTop: '10px', 
-                      padding: '12px', 
-                      background: '#ffebee', 
-                      border: '1px solid #f44336',
-                      borderRadius: '8px',
-                      fontSize: '0.9em',
-                      color: '#c62828'
-                    }}>
-                      ⚠️ {aiError}
-                    </div>
-                  )}
                   {(!rideData.distanceInMeters || !rideData.durationInSeconds) && (
                     <p style={{ fontSize: '0.85em', color: '#666', marginTop: '5px', fontStyle: 'italic' }}>
                       💡 AI önerisi almak için önce kalkış ve varış adreslerini seçin ve rota hesaplanana kadar bekleyin.
@@ -689,8 +656,6 @@ const Dashboard: React.FC = () => {
                       price: 0,
                     });
                     setAiSuggestion(null);
-                    setAiError('');
-                    setRideError('');
                   }}
                   className="btn-secondary"
                 >

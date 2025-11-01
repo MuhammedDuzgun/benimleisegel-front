@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { rateService } from '../api/rateService';
 import { rideService } from '../api/rideService';
 import { userService } from '../api/userService';
+import { useToast } from '../context/ToastContext';
 import { Rate, Ride, User } from '../types';
 import './Ratings.css';
 
@@ -15,8 +16,7 @@ const Ratings: React.FC = () => {
   const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
   const [formData, setFormData] = useState({ score: 5, comment: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     loadUserData();
@@ -61,12 +61,10 @@ const Ratings: React.FC = () => {
     e.preventDefault();
     
     if (!selectedRide) {
-      setError('Lütfen değerlendirmek istediğiniz yolculuğu seçin.');
+      showError('Lütfen değerlendirmek istediğiniz yolculuğu seçin.');
       return;
     }
 
-    setError('');
-    setSuccess('');
     setLoading(true);
 
     try {
@@ -76,14 +74,13 @@ const Ratings: React.FC = () => {
         targetUserId: selectedRide.driver.id,
         targetRideId: selectedRide.id,
       });
-      setSuccess('Değerlendirme başarıyla eklendi!');
+      showSuccess('Değerlendirme başarıyla eklendi!');
       setFormData({ score: 5, comment: '' });
       setSelectedRide(null);
       setShowCreateForm(false);
       await Promise.all([loadUserData(), loadRatings(), loadRidesAsGuest()]);
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Değerlendirme eklenirken hata oluştu.');
+      showError(err.response?.data?.message || 'Değerlendirme eklenirken hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +98,6 @@ const Ratings: React.FC = () => {
 
   const handleRideSelect = (ride: Ride) => {
     setSelectedRide(ride);
-    setError('');
   };
 
   const renderStars = (score: number) => {
@@ -156,9 +152,6 @@ const Ratings: React.FC = () => {
             <span>Skorunuz: ⭐ {user?.score?.toFixed(1) || '0.0'} / 5.0</span>
           </div>
         </div>
-
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
 
         <div className="create-rate-section">
           {!showCreateForm ? (
@@ -251,7 +244,6 @@ const Ratings: React.FC = () => {
                     setShowCreateForm(false);
                     setFormData({ score: 5, comment: '' });
                     setSelectedRide(null);
-                    setError('');
                   }}
                   className="btn-secondary"
                 >

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { rideService } from '../api/rideService';
 import { rideRequestService } from '../api/rideRequestService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Ride } from '../types';
 import RideModal from '../components/RideModal';
 import './Home.css';
@@ -12,10 +13,9 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [requestingRideId, setRequestingRideId] = useState<number | null>(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
   const { isAuthenticated } = useAuth();
+  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,17 +74,13 @@ const Home: React.FC = () => {
     }
 
     setRequestingRideId(rideId);
-    setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       await rideRequestService.createRideRequest({ id: rideId.toString() });
-      setSuccessMessage('Talebiniz başarıyla gönderildi!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showSuccess('Talebiniz başarıyla gönderildi!');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Talep gönderilirken bir hata oluştu.';
-      setErrorMessage(message);
-      setTimeout(() => setErrorMessage(''), 3000);
+      showError(message);
     } finally {
       setRequestingRideId(null);
     }
@@ -119,8 +115,6 @@ const Home: React.FC = () => {
 
       <div className="rides-section">
         <h3>Aktif Yolculuklar</h3>
-        {successMessage && <div className="success-message">{successMessage}</div>}
-        {errorMessage && <div className="error-message">{errorMessage}</div>}
         {loading ? (
           <div className="loading-spinner">
             <div className="spinner"></div>
